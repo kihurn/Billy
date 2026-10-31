@@ -1,4 +1,4 @@
-project_id = "bill-splitter"
+project_id = "billy"
 
 [auth]
 enable_anonymous_sign_ins = true

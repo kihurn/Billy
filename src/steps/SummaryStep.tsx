@@ -70,7 +70,7 @@ export function SummaryStep({ bill, onNext }: StepProps) {
             <button className="person-head" aria-expanded={open} onClick={() => setExpanded(open ? null : p.guestId)}>
               <span className="avatar">{p.name.slice(0, 1).toUpperCase()}</span>
               <span className="grow">
-                <span className="ellipsis" style={{ display: 'block', fontWeight: 620 }}>
+                <span className="ellipsis person-name">
                   {p.name}
                 </span>
                 <span className="small">
@@ -116,7 +116,7 @@ export function SummaryStep({ bill, onNext }: StepProps) {
         </div>
       )}
 
-      <BottomBar note={<span className="money" style={{ fontWeight: 650, color: 'var(--text)' }}>{money(split.totalCents)}</span>}>
+      <BottomBar note={<span className="money" style={{ color: 'var(--text)' }}>{money(split.totalCents)}</span>}>
         <button className="btn" onClick={copy}>
           Share
         </button>

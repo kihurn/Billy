@@ -18,7 +18,12 @@
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --blur: blur(24px) saturate(170%);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* C0RE-style type: pixel VT323 for titles and money, mono for the rest. */
+  --font-pixel: 'VT323', ui-monospace, monospace;
+  --font-display: var(--font-pixel);
+  font-family: var(--font-mono);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -126,14 +131,17 @@ select {
 
 .topbar-title {
   flex: 1;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-synthesis: none;
+  font-size: 28px;
+  line-height: 1;
 }
 
 .topbar-step {
-  font-size: 13px;
+  font-family: var(--font-pixel);
+  font-synthesis: none;
+  font-size: 20px;
   color: var(--text-3);
-  font-variant-numeric: tabular-nums;
 }
 
 .progress {
@@ -192,7 +200,9 @@ select {
 
 .bottombar-note {
   flex: 1;
-  font-size: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: -0.01em;
   color: var(--text-2);
 }
 
@@ -225,6 +235,11 @@ select {
   gap: 8px;
 }
 
+/* Small mono caption next to a section title (counts, totals). */
+.section-head .small {
+  font-size: 12px;
+}
+
 .section-head {
   display: flex;
   align-items: baseline;
@@ -235,17 +250,18 @@ select {
 h1,
 h2 {
   margin: 0;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1;
 }
 
 h1 {
-  font-size: 34px;
-  font-weight: 750;
+  font-size: 72px;
 }
 
 h2 {
-  font-size: 17px;
-  font-weight: 650;
+  font-size: 28px;
 }
 
 .muted {
@@ -253,13 +269,26 @@ h2 {
 }
 
 .small {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-3);
 }
 
+/* Money in pixel digits, like a terminal readout. VT323 runs small, so size it up. */
 .money {
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-pixel);
+  font-size: 1.3em;
+  font-weight: 400;
+  font-synthesis: none; /* VT323 has one weight; never fake-bold the pixels */
+  line-height: 1;
   white-space: nowrap;
+}
+
+.section-head .money {
+  font-size: 20px;
+}
+
+.bottombar-note .money {
+  font-size: 26px;
 }
 
 /* ---------- Buttons ---------- */
@@ -275,7 +304,8 @@ h2 {
   min-height: 48px;
   padding: 0 20px;
   border-radius: 16px;
-  font-weight: 620;
+  font-weight: 600;
+  font-size: 15px;
   background: var(--fill);
   border: 1px solid var(--glass-border);
   transition: transform 160ms var(--ease-out), background-color 160ms ease, opacity 160ms ease;
@@ -373,7 +403,11 @@ h2 {
 .input-money {
   width: 96px;
   text-align: right;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-pixel);
+  font-synthesis: none;
+  font-size: 22px;
+  padding-top: 6px;
+  padding-bottom: 6px;
   flex-shrink: 0;
 }
 
@@ -412,7 +446,7 @@ select.input {
   border-radius: 999px;
   border: 1px solid var(--glass-border);
   background: var(--fill);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 560;
   white-space: nowrap;
   transition: transform 160ms var(--ease-out), background-color 180ms ease, border-color 180ms ease;
@@ -429,12 +463,15 @@ select.input {
 }
 
 .chip .count {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-pixel);
+  font-synthesis: none;
+  font-size: 18px;
+  line-height: 1;
   opacity: 0.75;
 }
 
 .tag {
+  font-family: var(--font-mono);
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
@@ -454,8 +491,10 @@ select.input {
   background: transparent;
   border-radius: 999px;
   padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-3);
   flex-shrink: 0;
   transition: transform 160ms var(--ease-out), background-color 160ms ease, color 160ms ease;
@@ -678,16 +717,24 @@ select.input {
   border-radius: 14px;
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-synthesis: none;
+  font-size: 26px;
   flex-shrink: 0;
   color: var(--on-solid);
   background: var(--solid);
 }
 
+.person-name {
+  display: block;
+  font-family: var(--font-display);
+  font-synthesis: none;
+  font-size: 26px;
+  line-height: 1;
+}
+
 .person-total {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 30px;
 }
 
 .chev {
@@ -726,7 +773,7 @@ select.input {
 
 .line-total {
   color: var(--text);
-  font-weight: 650;
+  font-weight: 600;
   padding-top: 8px;
   margin-top: 4px;
   border-top: 1px solid var(--glass-border);
@@ -778,12 +825,171 @@ select.input {
   clip: rect(0 0 0 0);
 }
 
+/* ---------- Home: receipt stack ---------- */
+
+.home-head {
+  padding: 8px 4px 2px;
+}
+
+.home-title {
+  font-size: 56px;
+}
+
+.slip {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  padding: 16px 16px 22px;
+  border-radius: 18px 18px 4px 4px;
+  /* Torn bottom edge: a row of 6px bites cut out of the last 8px. */
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat,
+    radial-gradient(circle 6px at 8px 100%, #0000 98%, #000) bottom left / 16px 8px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat,
+    radial-gradient(circle 6px at 8px 100%, #0000 98%, #000) bottom left / 16px 8px repeat-x;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+  transition-delay: calc(min(var(--i, 0), 6) * 50ms);
+  outline: none;
+}
+
+@starting-style {
+  .slip {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.slip:active {
+  transform: scale(0.985);
+  transition-delay: 0ms;
+}
+
+.slip:focus-visible {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.slip.slip-old {
+  opacity: 0.72;
+}
+
+.slip-empty {
+  appearance: none;
+  background: transparent;
+  border: 1.5px dashed rgba(255, 255, 255, 0.2);
+  -webkit-mask: none;
+  mask: none;
+  border-radius: 18px;
+  padding: 28px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.slip-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.slip-title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.slip-dash {
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  margin: 12px 0 8px;
+}
+
+.slip-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.slip-bottom .icon-btn {
+  margin-left: -8px;
+  color: var(--text-3);
+}
+
+.slip-label {
+  flex: 1;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.slip .slip-total {
+  font-size: 36px;
+}
+
+.initials {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.initials span {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: 8px;
+  margin-left: -6px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-pixel);
+  font-synthesis: none;
+  font-size: 18px;
+  color: var(--on-solid);
+  background: var(--solid);
+  border: 2px solid #1b1b1d;
+}
+
+.initials span:first-child {
+  margin-left: 0;
+}
+
+.fab {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  position: fixed;
+  z-index: 10;
+  right: max(20px, calc((100vw - 560px) / 2 + 20px));
+  bottom: calc(env(safe-area-inset-bottom) + 24px);
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--on-solid);
+  background: var(--solid);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.8), inset 0 1px 0 #fff;
+  transition: transform 160ms var(--ease-out);
+}
+
+.fab svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2.5;
+}
+
+.fab:active {
+  transform: scale(0.94);
+}
+
 /* ---------- Accessibility fallbacks ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   .screen,
   .person,
   .person-detail,
+  .slip,
   .toast {
     transform: none !important;
     transition-property: opacity;

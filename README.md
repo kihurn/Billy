@@ -1,4 +1,4 @@
-# Split — bill splitter
+# Billy — bill splitter
 
 Snap a receipt → the AI (Qwen3-VL on your C0RE server) reads the items → add the people at the table →
 tick who had what → everyone's share, with service charge / SST / alcohol tax split fairly.
@@ -70,6 +70,6 @@ npm test
 | `src/lib/scan.ts`, `src/lib/image.ts` | Shrinks the photo to ~1600 px JPEG and sends it to the edge function |
 | `src/lib/bills.ts` | Save / list / delete bills in Supabase |
 | `src/steps/*` | One screen per step: Home → Scan → Review → People → Who had what → Split |
-| `src/styles.css` | Monotone "Smoke" glass theme |
+| `src/styles.css` | Monotone "Smoke" glass theme; VT323 titles and money, Geist Mono text |
 | `supabase/functions/scan-receipt` | Calls C0RE with a JSON schema, cleans up the answer, friendly errors |
 | `supabase/migrations` | `bills` table with row-level security |
