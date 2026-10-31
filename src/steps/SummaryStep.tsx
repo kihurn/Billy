@@ -3,6 +3,7 @@ import { BottomBar } from '../components/BottomBar'
 import { ChevronIcon } from '../components/Icons'
 import { saveBill } from '../lib/bills'
 import { formatMoney } from '../lib/money'
+import { plural } from '../lib/text'
 import { computeSplit, type SplitResult } from '../lib/split'
 import type { Bill } from '../lib/types'
 import type { StepProps } from './props'
@@ -74,7 +75,7 @@ export function SummaryStep({ bill, onNext }: StepProps) {
                   {p.name}
                 </span>
                 <span className="small">
-                  {p.items.length} item{p.items.length === 1 ? '' : 's'}
+                  {plural(p.items.length, 'item')}
                 </span>
               </span>
               <span className="person-total money">{money(p.totalCents)}</span>
@@ -117,7 +118,7 @@ export function SummaryStep({ bill, onNext }: StepProps) {
       )}
 
       <BottomBar note={<span className="money" style={{ color: 'var(--text)' }}>{money(split.totalCents)}</span>}>
-        <button className="btn" onClick={copy}>
+        <button className="btn" onClick={() => void copy()}>
           Share
         </button>
         <button className="btn btn-primary" onClick={onNext}>

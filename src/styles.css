@@ -837,11 +837,7 @@ select.input {
 
 .slip {
   position: relative;
-  display: block;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  padding: 16px 16px 22px;
+  padding: 0;
   border-radius: 18px 18px 4px 4px;
   /* Torn bottom edge: a row of 6px bites cut out of the last 8px. */
   -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - 8px) no-repeat,
@@ -852,7 +848,6 @@ select.input {
   transform: translateY(0);
   transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
   transition-delay: calc(min(var(--i, 0), 6) * 50ms);
-  outline: none;
 }
 
 @starting-style {
@@ -862,13 +857,37 @@ select.input {
   }
 }
 
-.slip:active {
+.slip:has(.slip-open:active) {
   transform: scale(0.985);
   transition-delay: 0ms;
 }
 
-.slip:focus-visible {
+.slip:has(.slip-open:focus-visible) {
   border-color: rgba(255, 255, 255, 0.5);
+}
+
+.slip-open {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 16px 16px 22px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  outline: none;
+}
+
+.slip-open .slip-title,
+.slip-open .small {
+  display: block;
+}
+
+.slip-delete {
+  position: absolute;
+  left: 8px;
+  bottom: 20px;
+  color: var(--text-3);
 }
 
 .slip.slip-old {
@@ -902,6 +921,7 @@ select.input {
 }
 
 .slip-dash {
+  display: block;
   border-top: 1px dashed rgba(255, 255, 255, 0.2);
   margin: 12px 0 8px;
 }
@@ -910,11 +930,7 @@ select.input {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.slip-bottom .icon-btn {
-  margin-left: -8px;
-  color: var(--text-3);
+  padding-left: 30px; /* room for the delete button laid over this row */
 }
 
 .slip-label {

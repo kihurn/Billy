@@ -64,6 +64,9 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
 
   const removeCharge = (id: string) => update((b) => ({ ...b, charges: b.charges.filter((c) => c.id !== id) }))
 
+  const direction = diff > 0 ? 'less' : 'more'
+  const mismatch = `Items and charges add up to ${money(computed)}, which is ${money(Math.abs(diff))} ${direction} than the receipt. Check for a missing or misread line.`
+
   const canContinue = bill.items.length > 0 && bill.items.every((i) => i.name.trim())
 
   return (
@@ -190,11 +193,7 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
         </div>
         {bill.receiptTotalCents != null && (
           <div className={`notice ${diff === 0 ? 'notice-good' : ''}`} style={{ marginTop: 12 }}>
-            {diff === 0
-              ? 'Items and charges match the receipt total.'
-              : `Items and charges add up to ${money(computed)}, which is ${money(Math.abs(diff))} ${
-                  diff > 0 ? 'less' : 'more'
-                } than the receipt. Check for a missing or misread line.`}
+            {diff === 0 ? 'Items and charges match the receipt total.' : mismatch}
           </div>
         )}
       </div>

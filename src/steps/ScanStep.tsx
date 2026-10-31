@@ -79,7 +79,7 @@ export function ScanStep({ update, onNext }: StepProps) {
         accept="image/*"
         capture="environment"
         onChange={(e) => {
-          handleFile(e.target.files?.[0])
+          void handleFile(e.target.files?.[0])
           e.target.value = ''
         }}
       />
@@ -89,7 +89,7 @@ export function ScanStep({ update, onNext }: StepProps) {
         type="file"
         accept="image/*"
         onChange={(e) => {
-          handleFile(e.target.files?.[0])
+          void handleFile(e.target.files?.[0])
           e.target.value = ''
         }}
       />

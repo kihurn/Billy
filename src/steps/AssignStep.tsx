@@ -2,7 +2,15 @@ import { useState } from 'react'
 import { BottomBar } from '../components/BottomBar'
 import { CheckIcon } from '../components/Icons'
 import { formatMoney } from '../lib/money'
+import { plural } from '../lib/text'
 import type { StepProps } from './props'
+
+function sharedWith(sharers: string[], others: string[], checked: boolean, activeName: string): string {
+  if (sharers.length === 0) return 'Not ticked yet'
+  if (!checked) return `Had by ${others.join(', ')}`
+  if (others.length === 0) return `Just ${activeName}`
+  return `Shared with ${others.join(', ')}`
+}
 
 export function AssignStep({ bill, update, onNext }: StepProps) {
   const [activeId, setActiveId] = useState(bill.guests[0]?.id)
@@ -49,7 +57,7 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
           {bill.items.map((item) => {
             const sharers = sharersOf(item.id)
             const checked = sharers.includes(active.id)
-            const others = sharers.filter((id) => id !== active.id).map((id) => nameOf.get(id))
+            const others = sharers.filter((id) => id !== active.id).map((id) => nameOf.get(id) ?? '')
             return (
               <div key={item.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
                 <button
@@ -66,13 +74,7 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
                       {item.name}
                     </span>
                     <span className="small">
-                      {sharers.length === 0
-                        ? 'Not ticked yet'
-                        : !checked
-                          ? `Had by ${others.join(', ')}`
-                          : others.length === 0
-                            ? `Just ${active.name}`
-                            : `Shared with ${others.join(', ')}`}
+                      {sharedWith(sharers, others, checked, active.name)}
                     </span>
                   </span>
                   <span className="money">{formatMoney(item.priceCents, bill.currency)}</span>
@@ -88,7 +90,7 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
         </div>
       </div>
 
-      <BottomBar note={unassigned === 0 ? 'Every item is ticked' : `${unassigned} item${unassigned === 1 ? '' : 's'} not ticked yet`}>
+      <BottomBar note={unassigned === 0 ? 'Every item is ticked' : `${plural(unassigned, 'item')} not ticked yet`}>
         <button className="btn btn-primary" disabled={unassigned > 0} onClick={onNext}>
           See the split
         </button>
