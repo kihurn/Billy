@@ -1,0 +1,8 @@
+project_id = "bill-splitter"
+
+[auth]
+enable_anonymous_sign_ins = true
+
+[functions.scan-receipt]
+# Off because the function checks the signed-in user itself (works with both legacy and new Supabase API keys).
+verify_jwt = false
