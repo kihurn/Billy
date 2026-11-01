@@ -1,3 +1,4 @@
+import { chargesFromReceipt } from './charges'
 import { computeSplit } from './split'
 import { ensureSession, supabase } from './supabase'
 import type { Bill, ScannedReceipt } from './types'
@@ -18,24 +19,25 @@ export function newBill(): Bill {
 }
 
 export function billFromScan(bill: Bill, scan: ScannedReceipt): Bill {
+  const items = scan.items.map((it) => ({
+    id: crypto.randomUUID(),
+    name: it.name,
+    quantity: it.quantity,
+    priceCents: toCents(it.total_price),
+    isAlcohol: it.is_alcohol,
+  }))
+  const food = scan.subtotal == null ? items.reduce((a, i) => a + i.priceCents, 0) : toCents(scan.subtotal)
+  const alcohol = items.filter((i) => i.isAlcohol).reduce((a, i) => a + i.priceCents, 0)
   return {
     ...bill,
     title: scan.merchant || bill.title,
     currency: scan.currency || bill.currency,
-    items: scan.items.map((it) => ({
-      id: crypto.randomUUID(),
-      name: it.name,
-      quantity: it.quantity,
-      priceCents: toCents(it.total_price),
-      isAlcohol: it.is_alcohol,
-    })),
-    charges: scan.charges.map((c) => ({
-      id: crypto.randomUUID(),
-      label: c.label,
-      amountCents: toCents(c.amount),
-      appliesTo: c.applies_to,
-    })),
+    items,
+    charges: chargesFromReceipt(scan.charges, food, alcohol),
     receiptTotalCents: scan.total == null ? null : toCents(scan.total),
+    // New items have new ids, so any earlier ticks no longer apply.
+    assignments: {},
+    pieces: {},
   }
 }
 
@@ -45,6 +47,7 @@ export interface SavedBill {
   total_cents: number
   created_at: string
   pinned: boolean
+  is_draft: boolean
   data: Bill
 }
 
@@ -54,6 +57,7 @@ export async function saveBill(bill: Bill): Promise<void> {
     id: bill.id,
     title: bill.title,
     total_cents: computeSplit(bill).totalCents,
+    is_draft: !bill.finished,
     data: bill,
     updated_at: new Date().toISOString(),
   })
@@ -64,7 +68,7 @@ export async function listBills(): Promise<SavedBill[]> {
   await ensureSession()
   const { data, error } = await supabase
     .from('bills')
-    .select('id, title, total_cents, created_at, pinned, data')
+    .select('id, title, total_cents, created_at, pinned, is_draft, data')
     .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50)

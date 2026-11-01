@@ -56,6 +56,13 @@ Import the GitHub repo in Vercel (it detects Vite automatically), add `NEXT_PUBL
 `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` under Settings → Environment Variables, and deploy.
 (`VITE_` names work too.) Never add the Supabase **secret** key (`sb_secret_...`); the app doesn't use it.
 
+### 4. Keep-alive (optional but recommended)
+
+Free Supabase projects pause after about a week without activity. `vercel.json` schedules a daily Vercel cron
+that calls `/api/keep-alive`, which runs the tiny `keep_alive()` database function. It uses the same two
+`NEXT_PUBLIC_SUPABASE_*` variables. To stop strangers calling it, add a `CRON_SECRET` environment variable in
+Vercel (any long random string); Vercel's cron sends it automatically.
+
 ## Tests
 
 ```bash
@@ -72,4 +79,6 @@ npm test
 | `src/steps/*` | One screen per step: Home → Scan → Review → People → Who had what → Split |
 | `src/styles.css` | Monotone "Smoke" glass theme; VT323 titles and money, Geist Mono text |
 | `supabase/functions/scan-receipt` | Calls C0RE with a JSON schema, cleans up the answer, friendly errors |
-| `supabase/migrations` | `bills` table with row-level security |
+| `supabase/migrations` | `bills` and `friends` tables with row-level security, plus `keep_alive()` |
+| `src/lib/charges.ts` | Works out % charges (service, SST) from each person's own food |
+| `api/keep-alive.ts`, `vercel.json` | Daily ping so Supabase never pauses |

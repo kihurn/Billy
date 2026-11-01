@@ -109,6 +109,8 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
               const claims = [...counts].map(([id, n]) => `${nameOf.get(id)} ${n}`)
               let caption = `${plural(item.quantity, 'piece')} · ${left} left`
               if (claims.length > 0) caption = left > 0 ? `${left} left · ${claims.join(' · ')}` : claims.join(' · ')
+              // More eaten than billed: the printed price is shared by pieces eaten.
+              if (claimed > item.quantity) caption = `${claimed} counted, receipt says ${item.quantity} · ${claims.join(' · ')}`
               else if (sharers.length > 0) caption = `Shared by ${sharers.map((id) => nameOf.get(id)).join(', ')}`
               return (
                 <div key={item.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
@@ -135,7 +137,6 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
                       <span aria-label={`${active.name} had`}>{mine}</span>
                       <button
                         aria-label={`One more ${item.name} for ${active.name}`}
-                        disabled={claims.length > 0 && left === 0}
                         onClick={() => setPieces(item.id, mine + 1)}
                       >
                         +

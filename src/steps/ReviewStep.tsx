@@ -1,6 +1,8 @@
 import { BottomBar } from '../components/BottomBar'
 import { CloseIcon, PlusIcon } from '../components/Icons'
 import { MoneyInput } from '../components/MoneyInput'
+import { PercentInput } from '../components/PercentInput'
+import { chargeAmounts, parseRate } from '../lib/charges'
 import { unitPrice, withQuantity, withUnitPrice } from '../lib/items'
 import { formatMoney, ROUNDING_TOLERANCE_CENTS } from '../lib/money'
 import type { Charge, Item } from '../lib/types'
@@ -14,7 +16,9 @@ const PRESETS = [
 
 export function ReviewStep({ bill, update, onNext }: StepProps) {
   const itemsTotal = bill.items.reduce((a, i) => a + i.priceCents, 0)
-  const chargesTotal = bill.charges.reduce((a, c) => a + c.amountCents, 0)
+  const alcoholTotal = bill.items.filter((i) => i.isAlcohol).reduce((a, i) => a + i.priceCents, 0)
+  const amounts = chargeAmounts(bill.charges, itemsTotal, alcoholTotal)
+  const chargesTotal = amounts.reduce((a, b) => a + b, 0)
   const computed = itemsTotal + chargesTotal
   const diff = bill.receiptTotalCents == null ? 0 : bill.receiptTotalCents - computed
   const money = (c: number) => formatMoney(c, bill.currency)
@@ -34,11 +38,27 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
       items: [...b.items, { id: crypto.randomUUID(), name: '', quantity: 1, priceCents: 0, isAlcohol: false }],
     }))
 
-  const removeItem = (id: string) =>
+  const removeItem = (item: Item) => {
+    const ticked = (bill.assignments[item.id]?.length ?? 0) > 0 || Object.values(bill.pieces?.[item.id] ?? {}).some((n) => n > 0)
+    const name = item.name || 'this item'
+    if (ticked && !confirm(`Remove ${name}? It’s already been ticked for people. If you ate a different number than the receipt says, change the counts on “Who had what” instead.`)) return
     update((b) => {
-      const { [id]: _removed, ...assignments } = b.assignments
-      return { ...b, items: b.items.filter((i) => i.id !== id), assignments }
+      const { [item.id]: _ticks, ...assignments } = b.assignments
+      const { [item.id]: _pieces, ...pieces } = b.pieces ?? {}
+      return { ...b, items: b.items.filter((i) => i.id !== item.id), assignments, pieces }
     })
+  }
+
+  // Switch a charge between "% of each person's food" and a fixed amount shared by food.
+  const toggleChargeMode = (charge: Charge, index: number) => {
+    if (charge.rate != null) {
+      setCharge(charge.id, { rate: null, compound: false, amountCents: amounts[index] })
+      return
+    }
+    const base = charge.appliesTo === 'alcohol' ? alcoholTotal : itemsTotal
+    const guess = base > 0 ? Math.round((charge.amountCents / base) * 200) / 200 : 0
+    setCharge(charge.id, { rate: parseRate(charge.label) ?? (guess > 0 ? guess : 0.1) })
+  }
 
   // Changing how many pieces there are resets who-had-how-many for that line.
   const setQuantity = (item: Item, quantity: number) =>
@@ -58,6 +78,8 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
           label,
           amountCents: rate == null ? 0 : Math.round(itemsTotal * rate),
           appliesTo: 'all',
+          rate,
+          compound: false,
         },
       ],
     }))
@@ -108,7 +130,7 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
                 cents={unitPrice(item)}
                 onChange={(c) => replaceItem(withUnitPrice(item, c ?? 0))}
               />
-              <button className="icon-btn" aria-label="Remove item" onClick={() => removeItem(item.id)}>
+              <button className="icon-btn" aria-label="Remove item" onClick={() => removeItem(item)}>
                 <CloseIcon />
               </button>
               <div className="item-meta">
@@ -149,34 +171,54 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
         </div>
         <div className="stack">
           {bill.charges.length === 0 && <p className="small" style={{ margin: 0 }}>No charges on this receipt.</p>}
-          {bill.charges.map((charge) => (
-            <div key={charge.id} className="row" style={{ flexWrap: 'wrap', rowGap: 6 }}>
-              <input
-                className="input input-bare grow"
-                placeholder="e.g. Service charge"
-                aria-label="Charge name"
-                value={charge.label}
-                onChange={(e) => setCharge(charge.id, { label: e.target.value })}
-              />
-              <MoneyInput
-                label="Charge amount"
-                cents={charge.amountCents}
-                onChange={(c) => setCharge(charge.id, { amountCents: c ?? 0 })}
-              />
-              <button className="icon-btn" aria-label="Remove charge" onClick={() => removeCharge(charge.id)}>
-                <CloseIcon />
-              </button>
-              <div style={{ width: '100%', paddingLeft: 4 }}>
-                <button
-                  className="toggle"
-                  aria-pressed={charge.appliesTo === 'alcohol'}
-                  onClick={() => setCharge(charge.id, { appliesTo: charge.appliesTo === 'all' ? 'alcohol' : 'all' })}
-                >
-                  {charge.appliesTo === 'alcohol' ? 'Only people who had alcohol' : 'Shared by everyone'}
+          {bill.charges.map((charge, index) => {
+            const earlierRate = bill.charges.slice(0, index).some((c) => c.rate != null)
+            return (
+              <div key={charge.id} className="row" style={{ flexWrap: 'wrap', rowGap: 6 }}>
+                <input
+                  className="input input-bare grow"
+                  placeholder="e.g. Service charge"
+                  aria-label="Charge name"
+                  value={charge.label}
+                  onChange={(e) => setCharge(charge.id, { label: e.target.value })}
+                />
+                {charge.rate == null ? (
+                  <MoneyInput
+                    label="Charge amount"
+                    cents={charge.amountCents}
+                    onChange={(c) => setCharge(charge.id, { amountCents: c ?? 0 })}
+                  />
+                ) : (
+                  <PercentInput label="Charge rate" rate={charge.rate} onChange={(rate) => setCharge(charge.id, { rate })} />
+                )}
+                <button className="icon-btn" aria-label="Remove charge" onClick={() => removeCharge(charge.id)}>
+                  <CloseIcon />
                 </button>
+                <div className="item-meta">
+                  {charge.rate != null && <span className="money item-total">= {money(amounts[index])}</span>}
+                  <button className="toggle" aria-pressed={charge.rate != null} onClick={() => toggleChargeMode(charge, index)}>
+                    {charge.rate == null ? 'Fixed amount' : '% of food'}
+                  </button>
+                  {charge.rate != null && earlierRate && (
+                    <button
+                      className="toggle"
+                      aria-pressed={Boolean(charge.compound)}
+                      onClick={() => setCharge(charge.id, { compound: !charge.compound })}
+                    >
+                      {charge.compound ? 'Also on charges above' : 'On food only'}
+                    </button>
+                  )}
+                  <button
+                    className="toggle"
+                    aria-pressed={charge.appliesTo === 'alcohol'}
+                    onClick={() => setCharge(charge.id, { appliesTo: charge.appliesTo === 'all' ? 'alcohol' : 'all' })}
+                  >
+                    {charge.appliesTo === 'alcohol' ? 'Alcohol only' : 'All items'}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
         <div className="chips" style={{ marginTop: 10 }}>
           {PRESETS.map((p) => (
@@ -189,7 +231,8 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
           </button>
         </div>
         <p className="small" style={{ margin: '10px 0 0' }}>
-          Use the amount printed on the receipt. Discounts are negative, e.g. -5.00.
+          % charges are worked out on each person’s own food. Fixed amounts (rounding, RM 5 off) are shared by how
+          much each person had; discounts are negative, e.g. -5.00.
         </p>
       </div>
 

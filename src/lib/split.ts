@@ -112,16 +112,27 @@ export function computeSplit(bill: SplitInput): SplitResult {
     })
   }
 
+  // Each person's share of the % charges so far, for charges that compound on top of them.
+  const rateChargesSoFar = bill.guests.map(() => 0)
+  const everyone = people.map((_, i) => i)
+
   for (const charge of bill.charges) {
     let base = charge.appliesTo === 'alcohol' ? baseAlcohol : baseAll
     if (charge.appliesTo === 'alcohol' && !base.some((w) => w > 0)) {
       warnings.push(`No alcohol items are ticked, so “${charge.label}” is split across all items.`)
       base = baseAll
     }
-    const weights = base.map((w) => Math.max(0, w))
-    const shares = fairAllocate(charge.amountCents, weights, people.map((_, i) => i))
+    let weights = base.map((w) => Math.max(0, w))
+    let amount = charge.amountCents
+    if (charge.rate != null) {
+      // % charge: the rate on each person's own food (plus their earlier % charges if it compounds).
+      if (charge.compound) weights = weights.map((w, i) => w + rateChargesSoFar[i])
+      amount = Math.round(charge.rate * weights.reduce((a, b) => a + b, 0))
+    }
+    const shares = fairAllocate(amount, weights, everyone)
     shares.forEach((cents, i) => {
       if (weights[i] > 0) people[i].charges.push({ label: charge.label, cents })
+      if (charge.rate != null) rateChargesSoFar[i] += cents
     })
   }
 

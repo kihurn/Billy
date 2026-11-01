@@ -519,6 +519,23 @@ select.input {
   color: var(--on-solid);
 }
 
+.input-percent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.input-percent .input-money {
+  width: 72px;
+}
+
+.input-percent > span {
+  font-family: var(--font-pixel);
+  font-size: 20px;
+  color: var(--text-2);
+}
+
 /* ---------- Chips / tabs ---------- */
 
 .chips {
@@ -1179,6 +1196,12 @@ select.input {
   text-transform: uppercase;
   color: var(--on-solid);
   background: var(--solid);
+}
+
+.slip-draft {
+  color: var(--text);
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.45);
 }
 
 /* ---------- Accessibility fallbacks ---------- */

@@ -153,7 +153,59 @@ describe('computeSplit', () => {
     expect(result.totalCents).toBe(itemsTotal + 2153 + 1421)
   })
 
+  describe('% charges', () => {
+    const items = [
+      { id: 'i1', name: 'Tori Katsu Curry Rice', quantity: 1, priceCents: 1380, isAlcohol: false },
+      { id: 'i2', name: 'Kitsune Udon', quantity: 1, priceCents: 1080, isAlcohol: false },
+    ]
+    const charges = [
+      { id: 'c1', label: 'Service Charge 10%', amountCents: 11740, appliesTo: 'all' as const, rate: 0.1 },
+      { id: 'c2', label: 'Tax 6%', amountCents: 704, appliesTo: 'all' as const, rate: 0.06 },
+    ]
+
+    it('charges each person the rate on their own food, whatever is printed', () => {
+      const result = computeSplit(bill({ guests, items, charges, assignments: { i1: ['a'], i2: ['b'] } }))
+      expect(result.people[0].charges.map((c) => c.cents)).toEqual([138, 83])
+      expect(result.people[1].charges.map((c) => c.cents)).toEqual([108, 65])
+    })
+
+    it('compounds tax on the service charge when the receipt did', () => {
+      const result = computeSplit(
+        bill({
+          guests,
+          items: [{ id: 'i1', name: 'Steak', quantity: 1, priceCents: 10000, isAlcohol: false }],
+          charges: [
+            { id: 'c1', label: 'Service 10%', amountCents: 1000, appliesTo: 'all', rate: 0.1 },
+            { id: 'c2', label: 'SST 6%', amountCents: 660, appliesTo: 'all', rate: 0.06, compound: true },
+          ],
+          assignments: { i1: ['a'] },
+        }),
+      )
+      expect(result.people[0].totalCents).toBe(11660)
+    })
+
+    it('still shares fixed charges like rounding by food', () => {
+      const result = computeSplit(
+        bill({
+          guests,
+          items,
+          charges: [{ id: 'r', label: 'Round Adj', amountCents: 2, appliesTo: 'all', rate: null }],
+          assignments: { i1: ['a'], i2: ['b'] },
+        }),
+      )
+      expect(result.people.reduce((a, p) => a + (p.charges[0]?.cents ?? 0), 0)).toBe(2)
+    })
+  })
+
   describe('counted pieces', () => {
+    it('shares the printed price by pieces eaten when more were eaten than billed', () => {
+      const sushi = { id: 's', name: 'Sushi 2.80', quantity: 14, priceCents: 3920, isAlcohol: false }
+      const result = computeSplit(bill({ guests, items: [sushi], pieces: { s: { a: 6, b: 5, c: 7 } } }))
+      expect(result.unassignedItemIds).toEqual([])
+      expect(result.people.map((p) => p.subtotalCents)).toEqual([1307, 1089, 1524])
+      expect(result.totalCents).toBe(3920)
+    })
+
     const sushi = { id: 's', name: 'Sushi 2.80', quantity: 14, priceCents: 3920, isAlcohol: false }
 
     it('charges each person for the pieces they had', () => {

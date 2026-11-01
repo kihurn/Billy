@@ -4,11 +4,10 @@ import { MoreIcon, PlusIcon } from '../components/Icons'
 import { deleteBill, listBills, renameBill, setBillPinned, type SavedBill } from '../lib/bills'
 import { formatMoney } from '../lib/money'
 import { plural } from '../lib/text'
-import type { Bill } from '../lib/types'
 
 interface Props {
   onNew: () => void
-  onOpen: (bill: Bill) => void
+  onOpen: (bill: SavedBill) => void
 }
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
@@ -107,13 +106,14 @@ export function HomeStep({ onNew, onOpen }: Props) {
             className={`glass slip${i >= 2 && !b.pinned ? ' slip-old' : ''}`}
             style={{ '--i': i } as CSSProperties}
           >
-            <button className="slip-open" onClick={() => onOpen(b.data)}>
+            <button className="slip-open" onClick={() => onOpen(b)}>
               <span className="slip-top">
                 <span className="grow">
                   <span className="ellipsis slip-title">{b.title || 'Untitled bill'}</span>
                   <span className="small">
                     {when(b.created_at)}
                     {b.pinned && <span className="slip-pin">Pinned</span>}
+                    {b.is_draft && <span className="slip-pin slip-draft">Draft</span>}
                   </span>
                 </span>
                 <span className="initials" aria-label={guests.map((g) => g.name).join(', ')}>
