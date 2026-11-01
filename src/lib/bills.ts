@@ -44,6 +44,7 @@ export interface SavedBill {
   title: string
   total_cents: number
   created_at: string
+  pinned: boolean
   data: Bill
 }
 
@@ -63,7 +64,8 @@ export async function listBills(): Promise<SavedBill[]> {
   await ensureSession()
   const { data, error } = await supabase
     .from('bills')
-    .select('id, title, total_cents, created_at, data')
+    .select('id, title, total_cents, created_at, pinned, data')
+    .order('pinned', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(50)
   if (error) throw new Error(error.message)
@@ -72,5 +74,15 @@ export async function listBills(): Promise<SavedBill[]> {
 
 export async function deleteBill(id: string): Promise<void> {
   const { error } = await supabase.from('bills').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function renameBill(bill: Bill, title: string): Promise<void> {
+  const { error } = await supabase.from('bills').update({ title, data: { ...bill, title } }).eq('id', bill.id)
+  if (error) throw new Error(error.message)
+}
+
+export async function setBillPinned(id: string, pinned: boolean): Promise<void> {
+  const { error } = await supabase.from('bills').update({ pinned }).eq('id', id)
   if (error) throw new Error(error.message)
 }

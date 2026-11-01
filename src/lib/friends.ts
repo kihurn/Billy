@@ -17,13 +17,14 @@ export async function listFriends(): Promise<Friend[]> {
     .order('last_used_at', { ascending: false })
     .limit(100)
   if (error) throw new Error(error.message)
-  return data
+  return (data ?? []).filter((f) => typeof f?.name === 'string')
 }
 
 export async function saveFriend(name: string): Promise<Friend> {
   await ensureSession()
   const { data, error } = await supabase.from('friends').insert({ name: name.trim() }).select('id, name').single()
   if (error) throw new Error(error.message)
+  if (typeof data?.name !== 'string') throw new Error('Unexpected reply while saving a friend.')
   return data
 }
 

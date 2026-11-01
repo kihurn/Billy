@@ -153,6 +153,40 @@ describe('computeSplit', () => {
     expect(result.totalCents).toBe(itemsTotal + 2153 + 1421)
   })
 
+  describe('counted pieces', () => {
+    const sushi = { id: 's', name: 'Sushi 2.80', quantity: 14, priceCents: 3920, isAlcohol: false }
+
+    it('charges each person for the pieces they had', () => {
+      const result = computeSplit(
+        bill({ guests, items: [sushi], pieces: { s: { a: 5, b: 4, c: 5 } } }),
+      )
+      expect(result.unassignedItemIds).toEqual([])
+      expect(result.people.map((p) => p.subtotalCents)).toEqual([1400, 1120, 1400])
+      expect(result.people[0].items[0].label).toBe('Sushi 2.80 ×5')
+    })
+
+    it('treats a line as not done until every piece is claimed', () => {
+      const result = computeSplit(bill({ guests, items: [sushi], pieces: { s: { a: 5, b: 4 } } }))
+      expect(result.unassignedItemIds).toEqual(['s'])
+      expect(result.totalCents).toBe(0)
+    })
+
+    it('falls back to sharing when no pieces are counted', () => {
+      const result = computeSplit(
+        bill({ guests, items: [sushi], assignments: { s: ['a', 'b'] }, pieces: { s: { a: 0 } } }),
+      )
+      expect(result.people.map((p) => p.subtotalCents)).toEqual([1960, 1960, 0])
+    })
+
+    it('ignores counts from guests who were removed', () => {
+      const result = computeSplit(
+        bill({ guests, items: [sushi], pieces: { s: { a: 7, b: 7, gone: 3 } } }),
+      )
+      expect(result.unassignedItemIds).toEqual([])
+      expect(result.people.map((p) => p.subtotalCents)).toEqual([1960, 1960, 0])
+    })
+  })
+
   it('ignores assignments to guests who were removed', () => {
     const result = computeSplit(
       bill({

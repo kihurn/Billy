@@ -31,6 +31,9 @@ export interface Bill {
   receiptTotalCents: number | null
   guests: Guest[]
   assignments: Record<string, string[]> // itemId -> guestIds sharing it
+  // For lines with quantity > 1: itemId -> guestId -> pieces they had. Takes over from
+  // `assignments` for that line once anyone has a count. Optional so older saved bills still load.
+  pieces?: Record<string, Record<string, number>>
   createdAt: string
 }
 

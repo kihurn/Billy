@@ -44,7 +44,19 @@ export interface SplitResult {
   totalCents: number
 }
 
-type SplitInput = Pick<Bill, 'items' | 'charges' | 'guests' | 'assignments'>
+type SplitInput = Pick<Bill, 'items' | 'charges' | 'guests' | 'assignments' | 'pieces'>
+
+// Pieces each current guest had of a counted line (guests with 0 or who were removed are left out).
+export function pieceCounts(bill: Pick<Bill, 'guests' | 'pieces'>, itemId: string): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const g of bill.guests) {
+    const n = bill.pieces?.[itemId]?.[g.id] ?? 0
+    if (n > 0) counts.set(g.id, n)
+  }
+  return counts
+}
+
+export const totalPieces = (counts: Map<string, number>) => [...counts.values()].reduce((a, b) => a + b, 0)
 
 export function computeSplit(bill: SplitInput): SplitResult {
   const indexOf = new Map(bill.guests.map((g, i) => [g.id, i]))
@@ -74,16 +86,25 @@ export function computeSplit(bill: SplitInput): SplitResult {
   }
 
   for (const item of bill.items) {
-    const sharers = (bill.assignments[item.id] ?? []).filter((id) => indexOf.has(id))
+    const counts = pieceCounts(bill, item.id)
+    const counted = counts.size > 0
+    if (counted && totalPieces(counts) < item.quantity) {
+      unassignedItemIds.push(item.id) // some pieces still unclaimed
+      continue
+    }
+    const sharers = counted ? [...counts.keys()] : (bill.assignments[item.id] ?? []).filter((id) => indexOf.has(id))
     if (sharers.length === 0) {
       unassignedItemIds.push(item.id)
       continue
     }
     const who = sharers.map((id) => indexOf.get(id)!)
-    const shares = fairAllocate(item.priceCents, sharers.map(() => 1), who)
-    sharers.forEach((_, k) => {
+    const weights = sharers.map((id) => (counted ? counts.get(id)! : 1))
+    const shares = fairAllocate(item.priceCents, weights, who)
+    sharers.forEach((guestId, k) => {
       const i = who[k]
-      const label = sharers.length > 1 ? `${item.name} (1/${sharers.length})` : item.name
+      let label = item.name
+      if (counted) label = `${item.name} ×${counts.get(guestId)}`
+      else if (sharers.length > 1) label = `${item.name} (1/${sharers.length})`
       people[i].items.push({ label, cents: shares[k] })
       people[i].subtotalCents += shares[k]
       baseAll[i] += shares[k]

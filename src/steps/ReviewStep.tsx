@@ -3,7 +3,6 @@ import { CloseIcon, PlusIcon } from '../components/Icons'
 import { MoneyInput } from '../components/MoneyInput'
 import { unitPrice, withQuantity, withUnitPrice } from '../lib/items'
 import { formatMoney, ROUNDING_TOLERANCE_CENTS } from '../lib/money'
-import { allocate } from '../lib/split'
 import type { Charge, Item } from '../lib/types'
 import type { StepProps } from './props'
 
@@ -41,16 +40,13 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
       return { ...b, items: b.items.filter((i) => i.id !== id), assignments }
     })
 
-  // "3x Teh tarik RM 9.00" -> three RM 3.00 lines, so each person can tick one.
-  const splitUnits = (item: Item) =>
-    update((b) => {
-      const prices = allocate(item.priceCents, Array(item.quantity).fill(1))
-      const units = prices.map((priceCents) => ({ ...item, id: crypto.randomUUID(), quantity: 1, priceCents }))
-      const index = b.items.findIndex((i) => i.id === item.id)
-      const items = [...b.items.slice(0, index), ...units, ...b.items.slice(index + 1)]
-      const { [item.id]: _removed, ...assignments } = b.assignments
-      return { ...b, items, assignments }
-    })
+  // Changing how many pieces there are resets who-had-how-many for that line.
+  const setQuantity = (item: Item, quantity: number) =>
+    update((b) => ({
+      ...b,
+      items: b.items.map((i) => (i.id === item.id ? withQuantity(item, quantity) : i)),
+      pieces: { ...b.pieces, [item.id]: {} },
+    }))
 
   const addCharge = (label: string, rate: number | null) =>
     update((b) => ({
@@ -120,12 +116,12 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
                   <button
                     aria-label="One fewer"
                     disabled={item.quantity <= 1}
-                    onClick={() => replaceItem(withQuantity(item, item.quantity - 1))}
+                    onClick={() => setQuantity(item, item.quantity - 1)}
                   >
                     −
                   </button>
                   <span aria-label="Quantity">{item.quantity}</span>
-                  <button aria-label="One more" onClick={() => replaceItem(withQuantity(item, item.quantity + 1))}>
+                  <button aria-label="One more" onClick={() => setQuantity(item, item.quantity + 1)}>
                     +
                   </button>
                 </span>
@@ -137,11 +133,6 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
                 >
                   {item.isAlcohol ? 'Alcohol' : 'Not alcohol'}
                 </button>
-                {item.quantity > 1 && (
-                  <button className="toggle" onClick={() => splitUnits(item)}>
-                    Split into {item.quantity} lines
-                  </button>
-                )}
               </div>
             </div>
           ))}

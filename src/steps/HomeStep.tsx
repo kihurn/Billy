@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { PlusIcon, TrashIcon } from '../components/Icons'
-import { deleteBill, listBills, type SavedBill } from '../lib/bills'
+import { BillActions } from '../components/BillActions'
+import { MoreIcon, PlusIcon } from '../components/Icons'
+import { deleteBill, listBills, renameBill, setBillPinned, type SavedBill } from '../lib/bills'
 import { formatMoney } from '../lib/money'
 import { plural } from '../lib/text'
 import type { Bill } from '../lib/types'
@@ -27,6 +28,11 @@ function when(iso: string): string {
   return `${dayLabel(d)}, ${time}`
 }
 
+// Pinned first, then newest first (same order the database returns).
+function sorted(bills: SavedBill[]): SavedBill[] {
+  return [...bills].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.created_at.localeCompare(a.created_at))
+}
+
 function subtitle(bills: SavedBill[] | null): string {
   if (bills === null) return 'Loading…'
   if (bills.length === 0) return 'Split your first bill'
@@ -38,6 +44,7 @@ function subtitle(bills: SavedBill[] | null): string {
 export function HomeStep({ onNew, onOpen }: Props) {
   const [bills, setBills] = useState<SavedBill[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [actionsFor, setActionsFor] = useState<SavedBill | null>(null)
 
   useEffect(() => {
     listBills()
@@ -45,15 +52,34 @@ export function HomeStep({ onNew, onOpen }: Props) {
       .catch((e: Error) => setError(e.message))
   }, [])
 
-  async function remove(id: string) {
-    if (!confirm('Delete this bill?')) return
+  // Runs a change against the database, then applies it locally; errors show at the top.
+  async function act(change: () => Promise<void>, apply: (bills: SavedBill[]) => SavedBill[]) {
+    setActionsFor(null)
     try {
-      await deleteBill(id)
-      setBills((bs) => bs?.filter((b) => b.id !== id) ?? null)
+      await change()
+      setBills((bs) => (bs ? sorted(apply(bs)) : bs))
     } catch (e) {
       setError((e as Error).message)
     }
   }
+
+  const rename = (b: SavedBill, title: string) =>
+    act(
+      () => renameBill(b.data, title),
+      (bs) => bs.map((x) => (x.id === b.id ? { ...x, title, data: { ...x.data, title } } : x)),
+    )
+
+  const togglePin = (b: SavedBill) =>
+    act(
+      () => setBillPinned(b.id, !b.pinned),
+      (bs) => bs.map((x) => (x.id === b.id ? { ...x, pinned: !b.pinned } : x)),
+    )
+
+  const remove = (b: SavedBill) =>
+    act(
+      () => deleteBill(b.id),
+      (bs) => bs.filter((x) => x.id !== b.id),
+    )
 
   return (
     <div className="screen">
@@ -73,15 +99,22 @@ export function HomeStep({ onNew, onOpen }: Props) {
 
       {bills?.map((b, i) => {
         const guests = b.data.guests
-        // The slip's content is one real <button>; the delete button sits beside it
+        // The slip's content is one real <button>; the ⋯ button sits beside it
         // (absolutely positioned) because buttons can't be nested.
         return (
-          <div key={b.id} className={`glass slip${i >= 2 ? ' slip-old' : ''}`} style={{ '--i': i } as CSSProperties}>
+          <div
+            key={b.id}
+            className={`glass slip${i >= 2 && !b.pinned ? ' slip-old' : ''}`}
+            style={{ '--i': i } as CSSProperties}
+          >
             <button className="slip-open" onClick={() => onOpen(b.data)}>
               <span className="slip-top">
                 <span className="grow">
                   <span className="ellipsis slip-title">{b.title || 'Untitled bill'}</span>
-                  <span className="small">{when(b.created_at)}</span>
+                  <span className="small">
+                    {when(b.created_at)}
+                    {b.pinned && <span className="slip-pin">Pinned</span>}
+                  </span>
                 </span>
                 <span className="initials" aria-label={guests.map((g) => g.name).join(', ')}>
                   {guests.slice(0, MAX_INITIALS).map((g) => (
@@ -96,8 +129,8 @@ export function HomeStep({ onNew, onOpen }: Props) {
                 <span className="money slip-total">{formatMoney(b.total_cents, b.data.currency)}</span>
               </span>
             </button>
-            <button className="icon-btn slip-delete" aria-label="Delete bill" onClick={() => void remove(b.id)}>
-              <TrashIcon />
+            <button className="icon-btn slip-more" aria-label="Bill options" onClick={() => setActionsFor(b)}>
+              <MoreIcon />
             </button>
           </div>
         )
@@ -106,6 +139,16 @@ export function HomeStep({ onNew, onOpen }: Props) {
       <button className="fab" aria-label="Split a new bill" onClick={onNew}>
         <PlusIcon />
       </button>
+
+      {actionsFor && (
+        <BillActions
+          bill={actionsFor}
+          onClose={() => setActionsFor(null)}
+          onRename={(title) => void rename(actionsFor, title)}
+          onTogglePin={() => void togglePin(actionsFor)}
+          onDelete={() => void remove(actionsFor)}
+        />
+      )}
     </div>
   )
 }
