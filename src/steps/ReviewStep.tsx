@@ -1,4 +1,5 @@
 import { BottomBar } from '../components/BottomBar'
+import { GrowingInput } from '../components/GrowingInput'
 import { CloseIcon, PlusIcon } from '../components/Icons'
 import { MoneyInput } from '../components/MoneyInput'
 import { PercentInput } from '../components/PercentInput'
@@ -97,13 +98,12 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
   return (
     <div className="screen">
       <div className="glass">
-        <input
-          className="input input-bare"
-          style={{ fontSize: 22, fontWeight: 700 }}
+        <GrowingInput
+          className="title-input"
           placeholder="Restaurant name"
-          aria-label="Restaurant name"
+          label="Restaurant name"
           value={bill.title}
-          onChange={(e) => update((b) => ({ ...b, title: e.target.value }))}
+          onChange={(title) => update((b) => ({ ...b, title }))}
         />
         <p className="small" style={{ margin: '4px 4px 0' }}>
           Check the items against the receipt and fix anything the scan got wrong.
@@ -118,12 +118,12 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
         <div className="stack">
           {bill.items.map((item) => (
             <div key={item.id} className="row" style={{ flexWrap: 'wrap', rowGap: 6 }}>
-              <input
-                className="input input-bare grow"
+              <GrowingInput
+                className="grow"
                 placeholder="Item name"
-                aria-label="Item name"
+                label="Item name"
                 value={item.name}
-                onChange={(e) => setItem(item.id, { name: e.target.value })}
+                onChange={(name) => setItem(item.id, { name })}
               />
               <MoneyInput
                 label={item.quantity > 1 ? 'Price of one' : 'Price'}
@@ -175,12 +175,12 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
             const earlierRate = bill.charges.slice(0, index).some((c) => c.rate != null)
             return (
               <div key={charge.id} className="row" style={{ flexWrap: 'wrap', rowGap: 6 }}>
-                <input
-                  className="input input-bare grow"
+                <GrowingInput
+                  className="grow"
                   placeholder="e.g. Service charge"
-                  aria-label="Charge name"
+                  label="Charge name"
                   value={charge.label}
-                  onChange={(e) => setCharge(charge.id, { label: e.target.value })}
+                  onChange={(label) => setCharge(charge.id, { label })}
                 />
                 {charge.rate == null ? (
                   <MoneyInput

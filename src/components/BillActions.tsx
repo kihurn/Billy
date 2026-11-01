@@ -52,7 +52,7 @@ export function BillActions({ bill, onClose, onRename, onTogglePin, onDelete }: 
           </form>
         ) : (
           <div className="stack">
-            <h2 className="ellipsis">{bill.title || 'Untitled bill'}</h2>
+            <h2 className="wrap">{bill.title || 'Untitled bill'}</h2>
             <button className="btn btn-block sheet-action" onClick={() => setRenaming(true)}>
               Rename
             </button>

@@ -109,7 +109,7 @@ export function HomeStep({ onNew, onOpen }: Props) {
             <button className="slip-open" onClick={() => onOpen(b)}>
               <span className="slip-top">
                 <span className="grow">
-                  <span className="ellipsis slip-title">{b.title || 'Untitled bill'}</span>
+                  <span className="wrap clamp-2 slip-title">{b.title || 'Untitled bill'}</span>
                   <span className="small">
                     {when(b.created_at)}
                     {b.pinned && <span className="slip-pin">Pinned</span>}

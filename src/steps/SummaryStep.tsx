@@ -71,7 +71,7 @@ export function SummaryStep({ bill, onNext }: StepProps) {
             <button className="person-head" aria-expanded={open} onClick={() => setExpanded(open ? null : p.guestId)}>
               <span className="avatar">{p.name.slice(0, 1).toUpperCase()}</span>
               <span className="grow">
-                <span className="ellipsis person-name">
+                <span className="wrap person-name">
                   {p.name}
                 </span>
                 <span className="small">

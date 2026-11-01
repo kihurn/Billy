@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { BottomBar } from '../components/BottomBar'
 import { CheckIcon } from '../components/Icons'
+import { ItemDetails } from '../components/ItemDetails'
+import { useLongPress } from '../lib/useLongPress'
 import { formatMoney } from '../lib/money'
 import { pieceCounts, totalPieces } from '../lib/split'
 import { plural } from '../lib/text'
@@ -29,10 +31,22 @@ function bottomNote(bill: Bill, open: Item[]): string {
   return `${partial.name}: ${plural(piecesLeft(bill, partial)!, 'piece')} left${rest}`
 }
 
+// One item's row: tap works as usual, press and hold opens the item's details.
+function HoldRow({ onHold, children }: { onHold: () => void; children: ReactNode }) {
+  const hold = useLongPress(onHold)
+  return (
+    <div className="hold-row" {...hold}>
+      {children}
+    </div>
+  )
+}
+
 export function AssignStep({ bill, update, onNext }: StepProps) {
   const [activeId, setActiveId] = useState(bill.guests[0]?.id)
+  const [details, setDetails] = useState<Item | null>(null)
   const active = bill.guests.find((g) => g.id === activeId) ?? bill.guests[0]
   const nameOf = new Map(bill.guests.map((g) => [g.id, g.name]))
+  const money = (c: number) => formatMoney(c, bill.currency)
   const sharersOf = (itemId: string) => (bill.assignments[itemId] ?? []).filter((id) => nameOf.has(id))
 
   const isDone = (item: Item) => {
@@ -87,6 +101,9 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
         <div className="section-head">
           <h2>What did {active.name} have?</h2>
         </div>
+        <p className="small" style={{ margin: '-6px 0 10px' }}>
+          Press and hold an item to see all its details.
+        </p>
         <div className="stack">
           {bill.items.map((item) => {
             const sharers = sharersOf(item.id)
@@ -113,14 +130,14 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
               if (claimed > item.quantity) caption = `${claimed} counted, receipt says ${item.quantity} · ${claims.join(' · ')}`
               else if (sharers.length > 0) caption = `Shared by ${sharers.map((id) => nameOf.get(id)).join(', ')}`
               return (
-                <div key={item.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+                <HoldRow key={item.id} onHold={() => setDetails(item)}>
                   <div className={`row grow count-row${mine > 0 ? ' count-row-on' : ''}`}>
                     <span className="grow">
-                      <span className="ellipsis" style={{ display: 'block', fontWeight: 560 }}>
+                      <span className="wrap clamp-2 item-name">
                         {item.name} <span className="count-qty">×{item.quantity}</span>
                       </span>
                       <span className="small" style={{ display: 'block' }}>
-                        {caption}
+                        <span className="money inline-money">{money(item.priceCents)}</span> · {caption}
                       </span>
                       <span className="pieces-bar">
                         <span style={{ transform: `scaleX(${Math.min(1, claimed / item.quantity)})` }} />
@@ -144,32 +161,34 @@ export function AssignStep({ bill, update, onNext }: StepProps) {
                     </span>
                   </div>
                   {allButton}
-                </div>
+                </HoldRow>
               )
             }
 
             const checked = sharers.includes(active.id)
             const others = sharers.filter((id) => id !== active.id).map((id) => nameOf.get(id) ?? '')
             return (
-              <div key={item.id} style={{ display: 'flex', gap: 6, alignItems: 'stretch' }}>
+              <HoldRow key={item.id} onHold={() => setDetails(item)}>
                 <button role="checkbox" aria-checked={checked} className="row check-row grow" onClick={() => toggle(item.id)}>
                   <span className="check">
                     <CheckIcon />
                   </span>
                   <span className="grow">
-                    <span className="ellipsis" style={{ display: 'block', fontWeight: 560 }}>
-                      {item.name}
+                    <span className="wrap clamp-2 item-name">{item.name}</span>
+                    <span className="small">
+                      <span className="money inline-money">{money(item.priceCents)}</span> ·{' '}
+                      {sharedWith(sharers, others, checked, active.name)}
                     </span>
-                    <span className="small">{sharedWith(sharers, others, checked, active.name)}</span>
                   </span>
-                  <span className="money">{formatMoney(item.priceCents, bill.currency)}</span>
                 </button>
                 {allButton}
-              </div>
+              </HoldRow>
             )
           })}
         </div>
       </div>
+
+      {details && <ItemDetails bill={bill} item={details} onClose={() => setDetails(null)} />}
 
       <BottomBar note={bottomNote(bill, open)}>
         <button className="btn btn-primary" disabled={open.length > 0} onClick={onNext}>
