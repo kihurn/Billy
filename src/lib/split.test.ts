@@ -123,6 +123,36 @@ describe('computeSplit', () => {
     expect(result.people.map((p) => p.totalCents)).toEqual([900, 900])
   })
 
+  it('spreads leftover sen fairly so identical orders cost the same (within 1 sen)', () => {
+    // 7 friends share 19 items that don't divide evenly by 7; Ki Hurn also has one extra item.
+    const friends = ['kh', 'xx', 'reo', 'wk', 'br', 'ar', 'jq'].map((id) => ({ id, name: id }))
+    const items = Array.from({ length: 19 }, (_, n) => ({
+      id: `i${n}`,
+      name: `Item ${n}`,
+      quantity: 1,
+      priceCents: 1000 + n * 37,
+      isAlcohol: false,
+    }))
+    const assignments: Record<string, string[]> = Object.fromEntries(items.map((i) => [i.id, friends.map((f) => f.id)]))
+    items.push({ id: 'extra', name: 'Extra', quantity: 1, priceCents: 500, isAlcohol: false })
+    assignments.extra = ['kh']
+    const result = computeSplit(
+      bill({
+        guests: friends,
+        items,
+        charges: [
+          { id: 'c1', label: 'Service 10%', amountCents: 2153, appliesTo: 'all' },
+          { id: 'c2', label: 'SST 6%', amountCents: 1421, appliesTo: 'all' },
+        ],
+        assignments,
+      }),
+    )
+    const others = result.people.slice(1).map((p) => p.totalCents)
+    expect(Math.max(...others) - Math.min(...others)).toBeLessThanOrEqual(1)
+    const itemsTotal = items.reduce((a, i) => a + i.priceCents, 0)
+    expect(result.totalCents).toBe(itemsTotal + 2153 + 1421)
+  })
+
   it('ignores assignments to guests who were removed', () => {
     const result = computeSplit(
       bill({

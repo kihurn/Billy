@@ -3,8 +3,9 @@ import type { Bill } from './types'
 /**
  * Splits `total` cents across people in proportion to `weights`, so the
  * shares always add back up to exactly `total` (largest-remainder method).
+ * When leftover sen tie, the person with the lowest `priority` gets one first.
  */
-export function allocate(total: number, weights: number[]): number[] {
+export function allocate(total: number, weights: number[], priority: number[] = []): number[] {
   const sumWeights = weights.reduce((a, b) => a + b, 0)
   if (weights.length === 0 || sumWeights <= 0) return weights.map(() => 0)
 
@@ -16,7 +17,7 @@ export function allocate(total: number, weights: number[]): number[] {
 
   const byRemainder = raw
     .map((r, i) => ({ i, frac: r - shares[i] }))
-    .sort((a, b) => b.frac - a.frac || a.i - b.i)
+    .sort((a, b) => b.frac - a.frac || (priority[a.i] ?? 0) - (priority[b.i] ?? 0) || a.i - b.i)
   for (let k = 0; leftover > 0; k++, leftover--) shares[byRemainder[k].i]++
 
   return shares.map((s) => s * sign)
@@ -59,6 +60,18 @@ export function computeSplit(bill: SplitInput): SplitResult {
   const baseAlcohol = bill.guests.map(() => 0)
   const unassignedItemIds: string[] = []
   const warnings: string[] = []
+  // Leftover sen each person has already absorbed, so ties go to whoever has had the fewest.
+  const extraSen = bill.guests.map(() => 0)
+
+  // allocate(), with rounding leftovers spread evenly across the whole bill.
+  const fairAllocate = (total: number, weights: number[], who: number[]) => {
+    const shares = allocate(total, weights, who.map((i) => extraSen[i]))
+    const sumW = weights.reduce((a, b) => a + b, 0)
+    shares.forEach((share, k) => {
+      if (sumW > 0) extraSen[who[k]] += Math.abs(share) - Math.floor((Math.abs(total) * weights[k]) / sumW)
+    })
+    return shares
+  }
 
   for (const item of bill.items) {
     const sharers = (bill.assignments[item.id] ?? []).filter((id) => indexOf.has(id))
@@ -66,9 +79,10 @@ export function computeSplit(bill: SplitInput): SplitResult {
       unassignedItemIds.push(item.id)
       continue
     }
-    const shares = allocate(item.priceCents, sharers.map(() => 1))
-    sharers.forEach((guestId, k) => {
-      const i = indexOf.get(guestId)!
+    const who = sharers.map((id) => indexOf.get(id)!)
+    const shares = fairAllocate(item.priceCents, sharers.map(() => 1), who)
+    sharers.forEach((_, k) => {
+      const i = who[k]
       const label = sharers.length > 1 ? `${item.name} (1/${sharers.length})` : item.name
       people[i].items.push({ label, cents: shares[k] })
       people[i].subtotalCents += shares[k]
@@ -84,7 +98,7 @@ export function computeSplit(bill: SplitInput): SplitResult {
       base = baseAll
     }
     const weights = base.map((w) => Math.max(0, w))
-    const shares = allocate(charge.amountCents, weights)
+    const shares = fairAllocate(charge.amountCents, weights, people.map((_, i) => i))
     shares.forEach((cents, i) => {
       if (weights[i] > 0) people[i].charges.push({ label: charge.label, cents })
     })

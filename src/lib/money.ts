@@ -1,3 +1,7 @@
+// Receipts often round the total to the nearest 5 sen. Gaps this small are ignored:
+// Billy just uses the amounts as listed.
+export const ROUNDING_TOLERANCE_CENTS = 10
+
 export function toCents(value: number): number {
   return Math.round(value * 100)
 }

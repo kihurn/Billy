@@ -415,6 +415,61 @@ select.input {
   width: auto;
 }
 
+/* ---------- Review: quantity stepper ---------- */
+
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding-left: 4px;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  height: 28px;
+}
+
+.stepper button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--text-2);
+  transition: transform 160ms var(--ease-out), opacity 160ms ease;
+}
+
+.stepper button:active:not(:disabled) {
+  transform: scale(0.9);
+}
+
+.stepper button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.stepper span {
+  min-width: 26px;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-synthesis: none;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.item-total {
+  color: var(--text-2);
+  margin-right: 4px;
+}
+
 /* ---------- Chips / tabs ---------- */
 
 .chips {
@@ -828,7 +883,8 @@ select.input {
 /* ---------- Home: receipt stack ---------- */
 
 .home-head {
-  padding: 8px 4px 2px;
+  /* Home has no top bar, so clear the phone's status bar / notch ourselves. */
+  padding: calc(env(safe-area-inset-top) + 8px) 4px 2px;
 }
 
 .home-title {

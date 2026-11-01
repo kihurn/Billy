@@ -1,7 +1,8 @@
 import { BottomBar } from '../components/BottomBar'
 import { CloseIcon, PlusIcon } from '../components/Icons'
 import { MoneyInput } from '../components/MoneyInput'
-import { formatMoney } from '../lib/money'
+import { unitPrice, withQuantity, withUnitPrice } from '../lib/items'
+import { formatMoney, ROUNDING_TOLERANCE_CENTS } from '../lib/money'
 import { allocate } from '../lib/split'
 import type { Charge, Item } from '../lib/types'
 import type { StepProps } from './props'
@@ -21,6 +22,9 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
 
   const setItem = (id: string, patch: Partial<Item>) =>
     update((b) => ({ ...b, items: b.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) }))
+
+  const replaceItem = (next: Item) =>
+    update((b) => ({ ...b, items: b.items.map((i) => (i.id === next.id ? next : i)) }))
 
   const setCharge = (id: string, patch: Partial<Charge>) =>
     update((b) => ({ ...b, charges: b.charges.map((c) => (c.id === id ? { ...c, ...patch } : c)) }))
@@ -65,7 +69,10 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
   const removeCharge = (id: string) => update((b) => ({ ...b, charges: b.charges.filter((c) => c.id !== id) }))
 
   const direction = diff > 0 ? 'less' : 'more'
-  const mismatch = `Items and charges add up to ${money(computed)}, which is ${money(Math.abs(diff))} ${direction} than the receipt. Check for a missing or misread line.`
+  const tiny = diff !== 0 && Math.abs(diff) <= ROUNDING_TOLERANCE_CENTS
+  let totalCheck = `Items and charges add up to ${money(computed)}, which is ${money(Math.abs(diff))} ${direction} than the receipt. Check for a missing or misread line.`
+  if (diff === 0) totalCheck = 'Items and charges match the receipt total.'
+  if (tiny) totalCheck = `Off by ${money(Math.abs(diff))} from the receipt, probably rounding. Billy will use ${money(computed)}.`
 
   const canContinue = bill.items.length > 0 && bill.items.every((i) => i.name.trim())
 
@@ -100,11 +107,29 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
                 value={item.name}
                 onChange={(e) => setItem(item.id, { name: e.target.value })}
               />
-              <MoneyInput label="Price" cents={item.priceCents} onChange={(c) => setItem(item.id, { priceCents: c ?? 0 })} />
+              <MoneyInput
+                label={item.quantity > 1 ? 'Price of one' : 'Price'}
+                cents={unitPrice(item)}
+                onChange={(c) => replaceItem(withUnitPrice(item, c ?? 0))}
+              />
               <button className="icon-btn" aria-label="Remove item" onClick={() => removeItem(item.id)}>
                 <CloseIcon />
               </button>
-              <div style={{ display: 'flex', gap: 6, width: '100%', paddingLeft: 4 }}>
+              <div className="item-meta">
+                <span className="stepper">
+                  <button
+                    aria-label="One fewer"
+                    disabled={item.quantity <= 1}
+                    onClick={() => replaceItem(withQuantity(item, item.quantity - 1))}
+                  >
+                    −
+                  </button>
+                  <span aria-label="Quantity">{item.quantity}</span>
+                  <button aria-label="One more" onClick={() => replaceItem(withQuantity(item, item.quantity + 1))}>
+                    +
+                  </button>
+                </span>
+                {item.quantity > 1 && <span className="money item-total">= {money(item.priceCents)}</span>}
                 <button
                   className="toggle"
                   aria-pressed={item.isAlcohol}
@@ -114,7 +139,7 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
                 </button>
                 {item.quantity > 1 && (
                   <button className="toggle" onClick={() => splitUnits(item)}>
-                    {item.quantity}× · split into {item.quantity} lines
+                    Split into {item.quantity} lines
                   </button>
                 )}
               </div>
@@ -192,8 +217,8 @@ export function ReviewStep({ bill, update, onNext }: StepProps) {
           />
         </div>
         {bill.receiptTotalCents != null && (
-          <div className={`notice ${diff === 0 ? 'notice-good' : ''}`} style={{ marginTop: 12 }}>
-            {diff === 0 ? 'Items and charges match the receipt total.' : mismatch}
+          <div className={`notice ${diff === 0 || tiny ? 'notice-good' : ''}`} style={{ marginTop: 12 }}>
+            {totalCheck}
           </div>
         )}
       </div>

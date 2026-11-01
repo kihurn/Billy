@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { BottomBar } from '../components/BottomBar'
 import { ChevronIcon } from '../components/Icons'
 import { saveBill } from '../lib/bills'
-import { formatMoney } from '../lib/money'
+import { formatMoney, ROUNDING_TOLERANCE_CENTS } from '../lib/money'
 import { plural } from '../lib/text'
 import { computeSplit, type SplitResult } from '../lib/split'
 import type { Bill } from '../lib/types'
@@ -57,7 +57,7 @@ export function SummaryStep({ bill, onNext }: StepProps) {
           {w}
         </div>
       ))}
-      {diff != null && diff !== 0 && (
+      {diff != null && Math.abs(diff) > ROUNDING_TOLERANCE_CENTS && (
         <div className="notice">
           This split comes to {money(split.totalCents)} but the receipt says {money(bill.receiptTotalCents!)}. Go back
           to check the items and charges.
