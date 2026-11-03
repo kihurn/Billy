@@ -4,8 +4,7 @@
 ██████╔╝██║██║     ██║   ╚████╔╝ 
 ██╔══██╗██║██║     ██║    ╚██╔╝  
 ██████╔╝██║███████╗███████╗██║   
-╚═════╝ ╚═╝╚══════╝╚══════╝╚═╝   
-                                 
+╚═════╝ ╚═╝╚══════╝╚══════╝╚═╝                              
 ```
 
 Snap a receipt → the AI (Qwen3-VL on your C0RE server) reads the items → add the people at the table →
